@@ -50,7 +50,7 @@ class ClerkState(rx.State):
     _on_load_events: ClassVar[dict[uuid.UUID, EventType[()]]] = {}
     _dependent_handlers: ClassVar[dict[int, EventCallback]] = {}
     _client: ClassVar[clerk_backend_api.Clerk | None] = None
-    _jwk_keys: ClassVar[dict[str, Any] | None] = None
+    _jwk_keys: ClassVar[list[dict[str, Any]] | None] = None
     "JWK keys from Clerk for decoding any users JWT tokens (only required once per instance)."
     _last_jwk_reset: ClassVar[float] = 0.0
     _claims_options: ClassVar[dict[str, Any]] = {
@@ -101,10 +101,11 @@ class ClerkState(rx.State):
         Note: Only the parts that modify the per-instance state need to be in an `async with self` block.
         """
         logging.debug("Setting Clerk session")
-        jwks = await self._get_jwk_keys()
+        jwk_key_list = await self._get_jwk_keys()
         try:
+            jwk_set: Any = {"keys": jwk_key_list}
             decoded: JWTClaims = jwt.decode(
-                token, {"keys": jwks}, claims_options=self._claims_options
+                token, jwk_set, claims_options=self._claims_options
             )
         except jose_errors.DecodeError as e:
             # E.g. DecodeError -- Something went wrong just getting the JWT
@@ -191,7 +192,7 @@ class ClerkState(rx.State):
         cls._client = client
 
     @classmethod
-    def _set_jwk_keys(cls, keys: dict[str, Any] | None) -> None:
+    def _set_jwk_keys(cls, keys: list[dict[str, Any]] | None) -> None:
         cls._jwk_keys = keys
 
     @classmethod
@@ -208,7 +209,7 @@ class ClerkState(rx.State):
         cls._last_jwk_reset = time.time()
         cls._jwk_keys = None
 
-    async def _get_jwk_keys(self) -> dict[str, Any]:
+    async def _get_jwk_keys(self) -> list[dict[str, Any]]:
         """Get the JWK keys from the Clerk API.
 
         Note: Cannot be a property because it requires async call to populate.
@@ -219,7 +220,8 @@ class ClerkState(rx.State):
         jwks = await self.client.jwks.get_jwks_async()
         assert jwks is not None
         assert jwks.keys is not None
-        keys = jwks.model_dump()["keys"]
+        keys_raw = jwks.model_dump()["keys"]
+        keys = cast(list[dict[str, Any]], keys_raw)
         self._set_jwk_keys(keys)
         return keys
 

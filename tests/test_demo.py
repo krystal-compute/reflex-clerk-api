@@ -75,34 +75,22 @@ def create_test_user(clerk_client: Clerk) -> User:
 
     logging.error("Creating test user...")
     res = clerk_client.users.create(
-        request={
-            "external_id": "ext-id-" + uuid.uuid4().hex[:5],
-            "first_name": "John",
-            "last_name": "Doe",
-            "email_address": [
-                TEST_EMAIL,
-            ],
-            "username": "fake_username_" + uuid.uuid4().hex[:5],
-            "password": TEST_PASSWORD,
-            "skip_password_checks": False,
-            "skip_password_requirement": False,
-            "public_metadata": {
-                "role": "user",
-            },
-            "private_metadata": {
-                "internal_id": "789",
-            },
-            "unsafe_metadata": {
-                "preferences": {
-                    "theme": "dark",
-                },
-            },
-            "delete_self_enabled": True,
-            "skip_legal_checks": False,
-            "create_organization_enabled": True,
-            "create_organizations_limit": 134365,
-            "created_at": "2023-03-15T07:15:20.902Z",
-        }
+        external_id="ext-id-" + uuid.uuid4().hex[:5],
+        first_name="John",
+        last_name="Doe",
+        email_address=[TEST_EMAIL],
+        username="fake_username_" + uuid.uuid4().hex[:5],
+        password=TEST_PASSWORD,
+        skip_password_checks=False,
+        skip_password_requirement=False,
+        public_metadata={"role": "user"},
+        private_metadata={"internal_id": "789"},
+        unsafe_metadata={"preferences": {"theme": "dark"}},
+        delete_self_enabled=True,
+        skip_legal_checks=False,
+        create_organization_enabled=True,
+        create_organizations_limit=134365,
+        created_at="2023-03-15T07:15:20.902Z",
     )
     assert res is not None
     return res
